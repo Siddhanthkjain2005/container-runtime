@@ -30,26 +30,21 @@ int setup_mount_namespace(const char *rootfs_path) {
 
 /* Perform pivot_root to change root filesystem */
 int do_pivot_root(const char *new_root) {
-    char *put_old;
-    char path[256];
-
-    /* Create put_old directory inside new_root */
-    snprintf(path, sizeof(path), "%s/.pivot_root", new_root);
-    if (mkdir(path, 0755) < 0 && errno != EEXIST) {
-        perror("mkdir .pivot_root");
-        return -1;
-    }
-
-    put_old = path;
-
     /* Change to new root */
     if (chdir(new_root) < 0) {
         perror("chdir new_root");
         return -1;
     }
 
-    /* Pivot root */
-    if (syscall(SYS_pivot_root, ".", put_old + strlen(new_root)) < 0) {
+    /* Create put_old directory inside new_root */
+    if (mkdir(".pivot_root", 0755) < 0 && errno != EEXIST) {
+        perror("mkdir .pivot_root");
+        return -1;
+    }
+
+    /* Pivot root - use current directory (.) as new root, 
+     * and .pivot_root as old root */
+    if (syscall(SYS_pivot_root, ".", ".pivot_root") < 0) {
         perror("pivot_root");
         return -1;
     }

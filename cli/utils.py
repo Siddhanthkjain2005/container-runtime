@@ -11,7 +11,10 @@ from pathlib import Path
 # Paths
 CONTAINER_STATE_DIR = "/var/lib/mycontainer/containers"
 CGROUP_BASE_PATH = "/sys/fs/cgroup/mycontainer"
-RUNTIME_PATH = "./container_runtime"
+
+# Find runtime binary - look in the parent directory of the script
+_script_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+RUNTIME_PATH = os.path.join(_script_dir, "container_runtime")
 
 def ensure_directories():
     """Ensure required directories exist"""

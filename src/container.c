@@ -11,6 +11,7 @@
 #include <sys/types.h>
 #include <errno.h>
 #include <fcntl.h>
+#include <limits.h>
 #include "container.h"
 #include "cgroups.h"
 #include "namespaces.h"
@@ -254,6 +255,7 @@ void cleanup_container(const char *name) {
 /* Main function for standalone testing */
 int main(int argc, char *argv[]) {
     struct container_config config = {0};
+    char rootfs_absolute[PATH_MAX];
 
     if (argc < 4) {
         fprintf(stderr, "Usage: %s <name> <rootfs> <command> [args...]\n", argv[0]);
@@ -267,7 +269,15 @@ int main(int argc, char *argv[]) {
 
     /* Parse arguments */
     config.name = argv[1];
-    config.rootfs_path = argv[2];
+    
+    /* Convert rootfs path to absolute */
+    if (realpath(argv[2], rootfs_absolute) == NULL) {
+        perror("realpath");
+        fprintf(stderr, "Failed to resolve rootfs path: %s\n", argv[2]);
+        return 1;
+    }
+    config.rootfs_path = rootfs_absolute;
+    
     config.command = argv[3];
     config.argc = argc - 3;
     config.args = &argv[3];

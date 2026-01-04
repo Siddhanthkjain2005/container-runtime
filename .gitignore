@@ -19,6 +19,9 @@ venv/
 # Container state (optional, depending on whether you want to track it)
 containers/*.json
 
+# Rootfs - do not commit large filesystems
+rootfs/
+
 # Temporary files
 *.swp
 *.swo

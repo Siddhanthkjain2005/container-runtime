@@ -88,17 +88,56 @@ sudo mkdir -p /var/lib/mycontainer/containers
 sudo mkdir -p /sys/fs/cgroup/mycontainer
 ```
 
-5. **Prepare a rootfs** (Ubuntu example):
+5. **Prepare a rootfs**:
+
+The container needs a root filesystem to run. You have several options:
+
+**Option A: BusyBox (minimal, for testing)**
+```bash
+# Create minimal busybox-based rootfs
+mkdir -p rootfs/{bin,sbin,etc,proc,sys,dev,usr/bin,usr/sbin,lib,lib64,tmp,var,home,root}
+cp /bin/busybox rootfs/bin/
+sudo chroot rootfs /bin/busybox --install -s
+sudo cp -a /lib/x86_64-linux-gnu rootfs/lib/
+sudo cp -a /lib64/ld-linux-x86-64.so.* rootfs/lib64/
+sudo ln -sf busybox rootfs/bin/sh
+
+# Create a test script
+cat > /tmp/init.sh << 'EOF'
+#!/bin/sh
+echo "Container started!"
+echo "Hostname: $(hostname)"
+ps aux
+sleep 5
+EOF
+sudo mv /tmp/init.sh rootfs/init.sh
+sudo chmod +x rootfs/init.sh
+```
+
+**Option B: Ubuntu (full featured)**
 ```bash
 # Download Ubuntu base rootfs for your architecture
-# For x86_64:
 mkdir -p rootfs
+
+# For x86_64:
 wget https://cloud-images.ubuntu.com/minimal/releases/jammy/release/ubuntu-22.04-minimal-cloudimg-amd64-root.tar.xz
 sudo tar -xf ubuntu-22.04-minimal-cloudimg-amd64-root.tar.xz -C rootfs/
 
-# Or use debootstrap
+# For ARM64:
+wget https://cloud-images.ubuntu.com/minimal/releases/jammy/release/ubuntu-22.04-minimal-cloudimg-arm64-root.tar.xz
+sudo tar -xf ubuntu-22.04-minimal-cloudimg-arm64-root.tar.xz -C rootfs/
+```
+
+**Option C: Debootstrap**
+```bash
+# Install debootstrap if not available
+sudo apt-get install debootstrap
+
+# Create Ubuntu rootfs
 sudo debootstrap --arch=amd64 jammy rootfs http://archive.ubuntu.com/ubuntu/
 ```
+
+**Note**: The rootfs directory is excluded from git (via .gitignore) due to its size.
 
 ## Usage
 
