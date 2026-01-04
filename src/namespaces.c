@@ -125,10 +125,18 @@ int mount_dev(void) {
     }
 
     /* Create essential device nodes */
-    mknod("/dev/null", S_IFCHR | 0666, makedev(1, 3));
-    mknod("/dev/zero", S_IFCHR | 0666, makedev(1, 5));
-    mknod("/dev/random", S_IFCHR | 0666, makedev(1, 8));
-    mknod("/dev/urandom", S_IFCHR | 0666, makedev(1, 9));
+    if (mknod("/dev/null", S_IFCHR | 0666, makedev(1, 3)) < 0 && errno != EEXIST) {
+        perror("mknod /dev/null");
+    }
+    if (mknod("/dev/zero", S_IFCHR | 0666, makedev(1, 5)) < 0 && errno != EEXIST) {
+        perror("mknod /dev/zero");
+    }
+    if (mknod("/dev/random", S_IFCHR | 0666, makedev(1, 8)) < 0 && errno != EEXIST) {
+        perror("mknod /dev/random");
+    }
+    if (mknod("/dev/urandom", S_IFCHR | 0666, makedev(1, 9)) < 0 && errno != EEXIST) {
+        perror("mknod /dev/urandom");
+    }
 
     /* Create /dev/pts for pseudo-terminals */
     if (mkdir("/dev/pts", 0755) < 0 && errno != EEXIST) {

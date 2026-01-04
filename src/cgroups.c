@@ -5,6 +5,7 @@
 #include <unistd.h>
 #include <sys/stat.h>
 #include <sys/types.h>
+#include <sys/sysmacros.h>
 #include <errno.h>
 #include <fcntl.h>
 #include <signal.h>
@@ -145,32 +146,25 @@ int cgroup_set_memory_limit(const char *container_name, long memory_bytes) {
 /* Set I/O limit in bytes per second */
 int cgroup_set_io_limit(const char *container_name, long io_bps) {
     char path[512];
-    char value[128];
-    char device_id[64];
-    FILE *fp;
+    char value[256];
+    struct stat st;
 
     if (io_bps <= 0) {
         return 0; /* Skip if no limit */
     }
 
     /* Get device major:minor for root device */
-    fp = popen("stat -c '%d' / | awk '{print $1}'", "r");
-    if (fp == NULL) {
-        perror("popen stat");
+    if (stat("/", &st) < 0) {
+        perror("stat /");
         return -1;
     }
-    
-    if (fgets(device_id, sizeof(device_id), fp) == NULL) {
-        pclose(fp);
-        return -1;
-    }
-    pclose(fp);
 
-    /* Remove newline */
-    device_id[strcspn(device_id, "\n")] = 0;
+    /* Format: major:minor rbps=X wbps=Y */
+    unsigned int major_num = major(st.st_dev);
+    unsigned int minor_num = minor(st.st_dev);
 
     snprintf(path, sizeof(path), "%s/%s/io.max", CGROUP_BASE_PATH, container_name);
-    snprintf(value, sizeof(value), "%s rbps=%ld wbps=%ld", device_id, io_bps, io_bps);
+    snprintf(value, sizeof(value), "%u:%u rbps=%ld wbps=%ld", major_num, minor_num, io_bps, io_bps);
 
     /* io.max might not be available, so don't fail */
     write_cgroup_file(path, value);
@@ -208,6 +202,7 @@ int cgroup_cleanup(const char *container_name) {
     char path[512];
     char procs_path[512];
     char buffer[4096];
+    char *saveptr;
     pid_t pid;
     char *line;
 
@@ -216,13 +211,15 @@ int cgroup_cleanup(const char *container_name) {
 
     /* Kill all processes in the cgroup */
     if (read_cgroup_file(procs_path, buffer, sizeof(buffer)) > 0) {
-        line = strtok(buffer, "\n");
+        line = strtok_r(buffer, "\n", &saveptr);
         while (line != NULL) {
             pid = atoi(line);
             if (pid > 1) {
-                kill(pid, SIGKILL);
+                if (kill(pid, SIGKILL) < 0 && errno != ESRCH) {
+                    perror("kill process in cgroup");
+                }
             }
-            line = strtok(NULL, "\n");
+            line = strtok_r(NULL, "\n", &saveptr);
         }
     }
 

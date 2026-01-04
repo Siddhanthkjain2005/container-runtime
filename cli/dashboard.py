@@ -29,7 +29,9 @@ def create_ascii_graph(values, height=5, width=30):
         return ["No data" + " " * (width - 7)] * height
     
     # Normalize values to fit in height
-    max_val = max(values) if max(values) > 0 else 1
+    max_val = max(values)
+    if max_val == 0:
+        max_val = 1
     normalized = [int((v / max_val) * (height - 1)) for v in values]
     
     # Create graph

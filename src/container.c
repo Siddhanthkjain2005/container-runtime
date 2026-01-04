@@ -129,9 +129,15 @@ int container_child_exec(void *arg) {
     }
 
     /* Mount essential filesystems */
-    mount_proc();
-    mount_sys();
-    mount_dev();
+    if (mount_proc() < 0) {
+        fprintf(stderr, "Warning: Failed to mount /proc\n");
+    }
+    if (mount_sys() < 0) {
+        fprintf(stderr, "Warning: Failed to mount /sys\n");
+    }
+    if (mount_dev() < 0) {
+        fprintf(stderr, "Warning: Failed to mount /dev\n");
+    }
 
     /* Setup network namespace */
     setup_network_namespace();
